@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply font-sans text-gray-800 bg-white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-gray-900;
+  }
+  
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+  
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+  
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  p {
+    @apply text-gray-600 leading-relaxed;
+  }
+  
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-blue-600 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-blue-700;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-blue-600 text-blue-600 hover:bg-blue-50;
+  }
+  
+  .section {
+    @apply py-20;
+  }
+  
+  .section-title {
+    @apply text-4xl font-bold text-center mb-4;
+  }
+  
+  .section-subtitle {
+    @apply text-xl text-center text-gray-600 mb-12 max-w-2xl mx-auto;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl;
+  }
+}
+
+/* Animation classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Custom styles for tooltips */
+.tooltip {
+  @apply invisible absolute;
+}
+
+.has-tooltip:hover .tooltip {
+  @apply visible z-50;
+}
+
+/* Custom styles for form elements */
+input[type="text"],
+input[type="email"],
+textarea {
+  @apply w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-200;
+}
+
+textarea {
+  @apply resize-none;
+}
+
+/* Custom styles for code blocks */
+pre {
+  @apply bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm;
+}
+
+code {
+  @apply font-mono;
+}
+
+/* Custom styles for links */
+a {
+  @apply text-blue-600 hover:text-blue-800 transition-colors duration-200;
+}
+
+/* Custom styles for lists */
+ul {
+  @apply list-disc pl-5 space-y-2;
+}
+
+ol {
+  @apply list-decimal pl-5 space-y-2;
+}
+
+/* Custom styles for blockquotes */
+blockquote {
+  @apply border-l-4 border-blue-500 pl-4 italic text-gray-600 my-4;
+}
+
+/* Custom styles for tables */
+table {
+  @apply min-w-full divide-y divide-gray-200;
+}
+
+th {
+  @apply px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+td {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-500;
+}
+
+tr:nth-child(even) {
+  @apply bg-gray-50;
+}
+
+tr:hover {
+  @apply bg-gray-100;
+}
