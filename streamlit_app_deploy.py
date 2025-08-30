@@ -10,22 +10,41 @@ def main():
         initial_sidebar_state="collapsed"
     )
 
-    # Hide Streamlit elements
+    # Hide Streamlit elements and enhance styling
     st.markdown("""
     <style>
-    #MainMenu, footer, header { visibility: hidden; }
+    /* Hide Streamlit UI elements */
+    #MainMenu, footer, header, .stDeployButton { 
+        visibility: hidden !important; 
+    }
+    
+    /* Main app container */
     .stApp { 
         padding: 0 !important; 
         margin: 0 !important; 
         max-width: 100% !important; 
         min-height: 100vh !important;
-        overflow: hidden;
+        overflow: hidden !important;
+        background-color: #0f172a !important;  /* Match your theme */
     }
-    iframe { 
-        border: none; 
-        width: 100% !important; 
-        height: 100vh !important; 
+    
+    /* Ensure full viewport height */
+    html, body, #root, #root > div {
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Fix for iframe content */
+    iframe {
+        border: none !important;
+        width: 100% !important;
+        height: 100vh !important;
         min-height: 100vh !important;
+        position: fixed;
+        top: 0;
+        left: 0;
     }
     </style>
     """, unsafe_allow_html=True)
