@@ -56,13 +56,23 @@ npm install
 # Create dist directory if it doesn't exist
 mkdir -p dist
 
+# Create necessary directories
+echo "Creating necessary directories..."
+mkdir -p dist
+
 # Build the React app
 echo "Building React app..."
-npm run build
+VITE_BASE_URL=/ npm run build
 
 # Verify build output
 echo "Build output in dist directory:"
 ls -la dist/
+
+# Copy serve.py to the dist directory
+cp serve.py dist/
+
+# Make serve.py executable
+chmod +x dist/serve.py
 
 # Install Python dependencies
 echo "Installing Python dependencies..."

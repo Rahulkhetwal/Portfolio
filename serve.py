@@ -29,21 +29,38 @@ HOST = '0.0.0.0'  # Listen on all interfaces
 # Get the base directory
 if os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
     # On Streamlit Cloud
-    BASE_DIR = os.getcwd()
-    DIST_DIR = os.path.join(BASE_DIR, 'dist')
+    # Try multiple possible locations for the dist directory
+    possible_dirs = [
+        os.path.join(os.getcwd(), 'dist'),  # Default location
+        os.path.join(os.getcwd(), '..', 'dist'),  # One level up
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist'),  # Relative to script
+        '/mount/src/portfolio/dist'  # Common Streamlit Cloud path
+    ]
+    
+    DIST_DIR = None
+    for dir_path in possible_dirs:
+        if os.path.exists(dir_path):
+            DIST_DIR = dir_path
+            break
+    
+    if DIST_DIR is None:
+        # If dist directory not found, create it
+        DIST_DIR = os.path.join(os.getcwd(), 'dist')
+        os.makedirs(DIST_DIR, exist_ok=True)
+    
+    BASE_DIR = os.path.dirname(DIST_DIR)
 else:
     # Local development
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DIST_DIR = os.path.join(BASE_DIR, 'dist')
-
-# Ensure the dist directory exists
-os.makedirs(DIST_DIR, exist_ok=True)
+    os.makedirs(DIST_DIR, exist_ok=True)
 
 # Log the current working directory and dist directory for debugging
 print(f"Current working directory: {os.getcwd()}")
 print(f"Base directory: {BASE_DIR}")
 print(f"Dist directory: {DIST_DIR}")
 print(f"Files in dist: {os.listdir(DIST_DIR) if os.path.exists(DIST_DIR) else 'dist directory not found'}")
+print(f"All files in base directory: {os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else 'Base directory not found'}")
 
 class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
