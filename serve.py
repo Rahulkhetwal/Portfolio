@@ -59,34 +59,53 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
 def build_react_app():
     """Build the React app if needed."""
     try:
-        # Check if we're on Streamlit Cloud
-        is_streamlit_cloud = os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true'
-        
-        # Only build if not on Streamlit Cloud or if dist is empty
-        if not is_streamlit_cloud or not os.path.exists(DIST_DIR) or not os.listdir(DIST_DIR):
-            logger.info("Building React app...")
+        # On Streamlit Cloud, the build is handled by setup.sh
+        if os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
+            logger.info("Running on Streamlit Cloud - using pre-built React app")
+            if not os.path.exists(DIST_DIR) or not os.listdir(DIST_DIR):
+                error_msg = "React app not built. Please check the build logs in setup.sh"
+                logger.error(error_msg)
+                st.error(error_msg)
+                return False
+            return True
+            
+        # Local development: Build if dist is empty or doesn't exist
+        if not os.path.exists(DIST_DIR) or not os.listdir(DIST_DIR):
+            logger.info("Building React app locally...")
             
             # Install dependencies if needed
             if not os.path.exists('node_modules'):
                 logger.info("Installing npm dependencies...")
-                subprocess.run(['npm', 'install'], check=True, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                result = subprocess.run(
+                    'npm install', 
+                    shell=True, 
+                    capture_output=True, 
+                    text=True
+                )
+                if result.returncode != 0:
+                    logger.error(f"npm install failed: {result.stderr}")
+                    return False
             
             # Build the React app
             logger.info("Running npm build...")
-            subprocess.run(['npm', 'run', 'build'], check=True, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            result = subprocess.run(
+                'npm run build', 
+                shell=True, 
+                capture_output=True, 
+                text=True
+            )
+            if result.returncode != 0:
+                logger.error(f"Build failed: {result.stderr}")
+                return False
+                
             logger.info("React app built successfully")
         else:
-            logger.info("Using pre-built React app")
+            logger.info("Using existing React build")
             
         return True
         
-    except subprocess.CalledProcessError as e:
-        error_msg = f"Failed to build React app: {e.stderr.decode() if hasattr(e, 'stderr') else str(e)}"
-        logger.error(error_msg)
-        st.error(error_msg)
-        return False
     except Exception as e:
-        error_msg = f"Error building React app: {str(e)}"
+        error_msg = f"Error in build_react_app: {str(e)}"
         logger.error(error_msg)
         st.error(error_msg)
         return False

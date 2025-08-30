@@ -1,25 +1,58 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 # Create necessary directories
 mkdir -p ~/.streamlit/
 
 # Create config.toml
-echo "\
-[server]\n\
-headless = true\n\
-port = 8501\n\
-enableCORS = false\n\
-\n\n[browser]\n\nserverAddress = \"\"\n\n\n\n[theme]\n\nbase = \"dark\"\n\nprimaryColor = \"#1f77b4\"\n\nbackgroundColor = \"#0e1117\"\n\nsecondaryBackgroundColor = \"#1e1e1e\"\n\ntextColor = \"#fafafa\"\n\nfont = \"sans serif\"\n" > ~/.streamlit/config.toml
+cat > ~/.streamlit/config.toml <<EOL
+[server]
+headless = true
+port = 8501
+enableCORS = false
 
-# Install Node.js and npm
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-sudo apt-get install -y nodejs
+[browser]
+serverAddress = ""
+
+[theme]
+base = "dark"
+primaryColor = "#1f77b4"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#1e1e1e"
+textColor = "#fafafa"
+font = "sans serif"
+EOL
+
+# Install Node.js and npm using nvm (Node Version Manager)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load nvm
+
+if ! command -v nvm &> /dev/null; then
+    echo "Installing nvm..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+fi
+
+# Install Node.js LTS
+nvm install --lts
+nvm use --lts
+
+# Verify installations
+node -v
+npm -v
 
 # Install npm dependencies
+echo "Installing npm dependencies..."
 npm install
 
 # Build the React app
+echo "Building React app..."
 npm run build
 
 # Install Python dependencies
+echo "Installing Python dependencies..."
 pip install -r requirements.txt
+
+echo "Setup completed successfully!"
