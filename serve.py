@@ -5,8 +5,14 @@ import http.server
 import socketserver
 import threading
 import time
+import sys
 from pathlib import Path
 import mimetypes
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Add MIME types
 mimetypes.add_type('application/javascript', '.js')
@@ -17,9 +23,13 @@ mimetypes.add_type('image/png', '.png')
 mimetypes.add_type('application/pdf', '.pdf')
 
 # Configuration
-PORT = 8000
-HOST = '127.0.0.1'
-DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+PORT = int(os.environ.get('PORT', 8000))
+HOST = '0.0.0.0'  # Listen on all interfaces
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DIST_DIR = os.path.join(BASE_DIR, 'dist')
+
+# Ensure the dist directory exists
+os.makedirs(DIST_DIR, exist_ok=True)
 
 class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -48,33 +58,54 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 def build_react_app():
     """Build the React app if needed."""
-    if os.path.exists(DIST_DIR) and os.listdir(DIST_DIR):
-        return True  # Already built
-    
     try:
-        # Create dist directory if it doesn't exist
-        os.makedirs(DIST_DIR, exist_ok=True)
+        # Check if we're on Streamlit Cloud
+        is_streamlit_cloud = os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true'
         
-        # Install dependencies if needed
-        if not os.path.exists('node_modules'):
-            subprocess.run(['npm', 'install'], check=True, shell=True)
-        
-        # Build the React app
-        subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
+        # Only build if not on Streamlit Cloud or if dist is empty
+        if not is_streamlit_cloud or not os.path.exists(DIST_DIR) or not os.listdir(DIST_DIR):
+            logger.info("Building React app...")
+            
+            # Install dependencies if needed
+            if not os.path.exists('node_modules'):
+                logger.info("Installing npm dependencies...")
+                subprocess.run(['npm', 'install'], check=True, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            
+            # Build the React app
+            logger.info("Running npm build...")
+            subprocess.run(['npm', 'run', 'build'], check=True, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            logger.info("React app built successfully")
+        else:
+            logger.info("Using pre-built React app")
+            
         return True
+        
     except subprocess.CalledProcessError as e:
-        st.error(f"Failed to build React app: {e}")
+        error_msg = f"Failed to build React app: {e.stderr.decode() if hasattr(e, 'stderr') else str(e)}"
+        logger.error(error_msg)
+        st.error(error_msg)
         return False
     except Exception as e:
-        st.error(f"Error building React app: {str(e)}")
+        error_msg = f"Error building React app: {str(e)}"
+        logger.error(error_msg)
+        st.error(error_msg)
         return False
 
 def start_server():
     """Start the HTTP server."""
     os.chdir(DIST_DIR)
-    with socketserver.TCPServer((HOST, PORT), CORSRequestHandler) as httpd:
-        print(f"Serving at http://{HOST}:{PORT}")
-        httpd.serve_forever()
+    
+    class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+    
+    try:
+        with ThreadedHTTPServer((HOST, PORT), CORSRequestHandler) as httpd:
+            logger.info(f"Serving static files from {DIST_DIR} at http://{HOST}:{PORT}")
+            httpd.serve_forever()
+    except OSError as e:
+        logger.error(f"Failed to start HTTP server: {str(e)}")
+        st.error(f"Failed to start HTTP server: {str(e)}")
+        sys.exit(1)
 
 def main():
     st.set_page_config(
@@ -88,29 +119,48 @@ def main():
     st.markdown("""
         <style>
         #MainMenu, footer, header { visibility: hidden; }
-        .stApp { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-        iframe { border: none; width: 100% !important; height: 100vh !important; }
+        .stApp { 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            max-width: 100% !important; 
+            min-height: 100vh !important;
+        }
+        iframe { 
+            border: none; 
+            width: 100% !important; 
+            height: 100vh !important; 
+            min-height: 100vh !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    # Build React app if needed
-    if not build_react_app():
-        st.error("Failed to build the application. Please check the logs.")
-        return
+    # Display a loading message
+    with st.spinner('Loading portfolio...'):
+        # Build React app if needed
+        if not build_react_app():
+            st.error("Failed to build the application. Please check the logs.")
+            return
 
-    # Start the server in a separate thread
-    server_thread = threading.Thread(target=start_server, daemon=True)
-    server_thread.start()
-    
-    # Give the server a moment to start
-    time.sleep(1)
+        # Start the server in a separate thread
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        
+        # Give the server a moment to start
+        time.sleep(2)
 
-    # Embed the React app in an iframe
-    st.components.v1.iframe(
-        f"http://{HOST}:{PORT}/",
-        height=1000,
-        scrolling=True
-    )
+        # Get the correct URL for the iframe
+        if os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
+            # On Streamlit Cloud, we need to use a different URL
+            iframe_url = f"https://{os.environ['STREAMLIT_SERVER_BASE_URL']}/"
+        else:
+            iframe_url = f"http://{HOST}:{PORT}/"
+
+        # Embed the React app in an iframe
+        st.components.v1.iframe(
+            iframe_url,
+            height=1000,
+            scrolling=True
+        )
 
 if __name__ == "__main__":
     main()
