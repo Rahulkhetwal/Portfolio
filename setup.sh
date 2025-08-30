@@ -68,11 +68,8 @@ VITE_BASE_URL=/ npm run build
 echo "Build output in dist directory:"
 ls -la dist/
 
-# Copy serve.py to the dist directory
-cp serve.py dist/
-
-# Make serve.py executable
-chmod +x dist/serve.py
+# Make sure the dist directory has the correct permissions
+chmod -R 755 dist/
 
 # Install Python package in development mode
 echo "Installing Python package..."
