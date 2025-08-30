@@ -1,0 +1,15 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  X-XSS-Protection: 1; mode=block
+  Content-Security-Policy: 
+    default-src 'self' https: data:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+    style-src 'self' 'unsafe-inline' https:;
+    img-src 'self' data: https:;
+    font-src 'self' data: https:;
+    connect-src 'self' https: wss:;
+    frame-ancestors 'self' https://*.streamlit.app;
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload

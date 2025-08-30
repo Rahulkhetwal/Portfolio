@@ -43,23 +43,38 @@ export default defineConfig(({ command }) => {
       emptyOutDir: true,
       assetsInlineLimit: 0, // Ensure all assets are copied as files
       copyPublicDir: true, // Ensure public directory is copied
+      sourcemap: isProduction ? false : 'inline',
+      minify: isProduction ? 'esbuild' : false,
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),
         },
         output: {
-          entryFileNames: 'assets/[name].[hash].js',
-          chunkFileNames: 'assets/[name].[hash].js',
+          entryFileNames: 'assets/js/[name].[hash].js',
+          chunkFileNames: 'assets/js/[name].[hash].js',
           assetFileNames: (assetInfo) => {
-            // Keep images in the root directory
-            if (/\.(jpe?g|png|gif|svg|webp|avif)$/i.test(assetInfo.name)) {
-              return '[name][extname]';
+            const info = assetInfo.name.split('.');
+            const ext = info[info.length - 1].toLowerCase();
+            
+            if (/\.(png|jpe?g|svg|gif|webp|avif)$/i.test(assetInfo.name)) {
+              return `assets/images/[name].[hash][extname]`;
             }
-            // Other assets in assets directory
-            return 'assets/[name].[hash][extname]';
+            if (/\.(woff|woff2|eot|ttf|otf)$/i.test(assetInfo.name)) {
+              return `assets/fonts/[name].[hash][extname]`;
+            }
+            if (/\.css$/i.test(assetInfo.name)) {
+              return `assets/css/[name].[hash][extname]`;
+            }
+            return `assets/[name].[hash][extname]`;
           },
         },
       },
+      chunkSizeWarningLimit: 1000,
+    },
+    define: {
+      // Ensure environment variables are available in the client
+      'import.meta.env.STREAMLIT_SERVER_BASE_URL': JSON.stringify(process.env.STREAMLIT_SERVER_BASE_URL || ''),
+      'import.meta.env.STREAMLIT_SERVER_RUNNING_ON_CLOUD': JSON.stringify(process.env.STREAMLIT_SERVER_RUNNING_ON_CLOUD || 'false'),
     },
   };
 });

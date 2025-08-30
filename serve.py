@@ -186,18 +186,20 @@ def main():
             return
 
         if is_streamlit_cloud:
-            # On Streamlit Cloud, serve the index.html directly
+            # On Streamlit Cloud, serve the content directly without iframe
             try:
-                # Read the index.html file
+                # Get the base URL
+                base_url = f"https://{os.environ['STREAMLIT_SERVER_BASE_URL']}"
+                
+                # Read and process index.html
                 with open(os.path.join(DIST_DIR, 'index.html'), 'r', encoding='utf-8') as f:
                     html_content = f.read()
                 
-                # Replace all asset paths to be relative
-                base_url = f"https://{os.environ['STREAMLIT_SERVER_BASE_URL']}"
+                # Fix asset paths
                 html_content = html_content.replace('href="/', f'href="{base_url}/')
                 html_content = html_content.replace('src="/', f'src="{base_url}/')
                 
-                # Force HTTPS for all external resources
+                # Force HTTPS for all resources
                 html_content = html_content.replace('http://', 'https://')
                 
                 # Add base URL for relative paths
@@ -206,32 +208,27 @@ def main():
                     f'<head><base href="{base_url}/" />'
                 )
                 
-                # Inject a script to handle any dynamic asset loading
-                html_content = html_content.replace(
-                    '</body>',
-                    '''<script>
-                    // Fix for any dynamically loaded assets
-                    document.addEventListener('DOMContentLoaded', function() {
-                        // Force HTTPS for any dynamically created elements
-                        const observer = new MutationObserver(function(mutations) {
-                            document.querySelectorAll('img, script, link[rel="stylesheet"]').forEach(el => {
-                                if (el.src && el.src.startsWith('http://')) {
-                                    el.src = el.src.replace('http://', 'https://');
-                                }
-                                if (el.href && el.href.startsWith('http://')) {
-                                    el.href = el.href.replace('http://', 'https://');
-                                }
-                            });
-                        });
-                        observer.observe(document.documentElement, {
-                            childList: true,
-                            subtree: true
-                        });
-                    });
-                    </script></body>'''
-                )
+                # Add CSP meta tag for security
+                csp_meta = '''
+                <meta http-equiv="Content-Security-Policy" 
+                    content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';
+                    img-src 'self' https: data:;
+                    script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+                    style-src 'self' 'unsafe-inline' https:;
+                    font-src 'self' https: data:;
+                    connect-src 'self' https: wss:;">
+                '''
+                html_content = html_content.replace('<head>', f'<head>{csp_meta}')
                 
-                st.components.v1.html(html_content, height=1000, scrolling=True)
+                # Remove any existing CSP headers that might conflict
+                html_content = html_content.replace('http-equiv="Content-Security-Policy"', 'http-equiv="X-Content-Security-Policy"')
+                
+                # Display the content
+                st.components.v1.html(
+                    html_content,
+                    height=1000,
+                    scrolling=True
+                )
                 
             except Exception as e:
                 st.error(f"Failed to load portfolio: {str(e)}")
