@@ -6,11 +6,11 @@ import { dirname, resolve } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export default defineConfig(({ command }) => {
-  const isProduction = command === 'build';
+export default defineConfig(({ command, mode }) => {
+  const isProduction = mode === 'production';
   
   return {
-    base: '/',
+    base: './',
     publicDir: 'public',
     plugins: [react()],
     server: {

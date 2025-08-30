@@ -1,122 +1,35 @@
 import os
-import streamlit as st
+import subprocess
+import sys
+import webbrowser
 from pathlib import Path
 
 def main():
-    st.set_page_config(
-        page_title="Rahul Khetwal - Portfolio",
-        page_icon="👨‍💻",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
-
-    # Hide Streamlit elements
-    st.markdown("""
-    <style>
-    #MainMenu, footer, header, .stDeployButton { 
-        display: none !important;
-    }
-    .stApp { 
-        padding: 0 !important; 
-        margin: 0 !important; 
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    iframe {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100% !important;
-        height: 100% !important;
-        border: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Get the base URL
+    # Check if we're running in Streamlit Cloud
     is_streamlit_cloud = os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', '').lower() == 'true'
-    base_url = os.environ.get('STREAMLIT_SERVER_BASE_URL', '')
     
-    # Try to find and serve the built React app
-    try:
-        # Look for dist directory in multiple possible locations
-        possible_dirs = [
-            Path(__file__).parent / 'dist',
-            Path('/mount/src/portfolio/dist'),
-            Path('/app/portfolio/dist'),
-            Path('/app/dist')
-        ]
+    if is_streamlit_cloud:
+        print("Running in Streamlit Cloud environment")
+        print("Starting FastAPI server...")
         
-        dist_dir = None
-        for dir_path in possible_dirs:
-            if dir_path.exists() and (dir_path / 'index.html').exists():
-                dist_dir = dir_path
-                break
+        # Install required packages
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
         
-        if not dist_dir:
-            st.error("Error: Could not find built React app. Please build the app first.")
-            st.code("""
-            # To build the React app, run:
-            npm install
-            npm run build
-            """)
-            return
+        # Start FastAPI server
+        import uvicorn
+        uvicorn.run("fastapi_server:app", host="0.0.0.0", port=8501)
+    else:
+        # For local development
+        print("Running in local development environment")
+        print("Starting development server...")
         
-        # Read the index.html file
-        index_path = dist_dir / 'index.html'
-        with open(index_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Start Vite dev server
+        subprocess.Popen(["npm", "run", "dev"], 
+                        cwd=Path(__file__).parent,
+                        shell=True)
         
-        # Fix asset paths for Streamlit Cloud
-        if is_streamlit_cloud and base_url:
-            # Get the app URL without the protocol
-            base_path = f"https://{base_url}"
-            
-            # Update asset paths to use relative paths
-            content = content.replace('href="/assets/', 'href="./assets/')
-            content = content.replace('src="/assets/', 'src="./assets/')
-            
-            # Add base URL with proper path
-            content = content.replace(
-                '<head>',
-                f'<head><base href="./" />'
-            )
-        
-        # Force HTTPS for all resources
-        content = content.replace('http://', 'https://')
-        
-        # Add CSP meta tag with more permissive settings for development
-        csp_meta = '''
-        <meta http-equiv="Content-Security-Policy" 
-            content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:;
-            script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
-            style-src 'self' 'unsafe-inline' https:;
-            img-src 'self' data: https:;
-            font-src 'self' data: https:;
-            connect-src 'self' https: wss:;
-            frame-src 'self' https:;
-            object-src 'none';
-            base-uri 'self';
-            form-action 'self';
-            frame-ancestors 'self' https://*.streamlit.app;
-            upgrade-insecure-requests;">
-        '''
-        # Insert CSP meta tag after the opening head tag
-        content = content.replace('<head>', '<head>' + csp_meta)
-        
-        # Display the content
-        st.components.v1.html(
-            content,
-            height=1000,
-            scrolling=True
-        )
-        
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        st.error(f"Current working directory: {os.getcwd()}")
-        st.error(f"Files in directory: {os.listdir('.')}")
-        if 'dist_dir' in locals() and dist_dir:
-            st.error(f"Files in dist: {os.listdir(dist_dir)}")
+        # Open browser
+        webbrowser.open("http://localhost:3000")
 
 if __name__ == "__main__":
     main()
