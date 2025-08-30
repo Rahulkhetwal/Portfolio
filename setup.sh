@@ -23,6 +23,11 @@ textColor = "#fafafa"
 font = "sans serif"
 EOL
 
+# Print current directory and files for debugging
+echo "Current directory: $(pwd)"
+echo "Files in current directory:"
+ls -la
+
 # Install Node.js and npm using nvm (Node Version Manager)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load nvm
@@ -36,23 +41,33 @@ if ! command -v nvm &> /dev/null; then
 fi
 
 # Install Node.js LTS
+echo "Installing Node.js..."
 nvm install --lts
 nvm use --lts
 
 # Verify installations
-node -v
-npm -v
+echo "Node.js version: $(node -v)"
+echo "npm version: $(npm -v)"
 
 # Install npm dependencies
 echo "Installing npm dependencies..."
 npm install
 
+# Create dist directory if it doesn't exist
+mkdir -p dist
+
 # Build the React app
 echo "Building React app..."
 npm run build
+
+# Verify build output
+echo "Build output in dist directory:"
+ls -la dist/
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
 echo "Setup completed successfully!"
+echo "Current directory structure:"
+find . -maxdepth 3 -type d | sort

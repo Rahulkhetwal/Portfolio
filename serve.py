@@ -25,11 +25,25 @@ mimetypes.add_type('application/pdf', '.pdf')
 # Configuration
 PORT = int(os.environ.get('PORT', 8000))
 HOST = '0.0.0.0'  # Listen on all interfaces
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DIST_DIR = os.path.join(BASE_DIR, 'dist')
+
+# Get the base directory
+if os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
+    # On Streamlit Cloud
+    BASE_DIR = os.getcwd()
+    DIST_DIR = os.path.join(BASE_DIR, 'dist')
+else:
+    # Local development
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DIST_DIR = os.path.join(BASE_DIR, 'dist')
 
 # Ensure the dist directory exists
 os.makedirs(DIST_DIR, exist_ok=True)
+
+# Log the current working directory and dist directory for debugging
+print(f"Current working directory: {os.getcwd()}")
+print(f"Base directory: {BASE_DIR}")
+print(f"Dist directory: {DIST_DIR}")
+print(f"Files in dist: {os.listdir(DIST_DIR) if os.path.exists(DIST_DIR) else 'dist directory not found'}")
 
 class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
