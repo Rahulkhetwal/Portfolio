@@ -1,8 +1,14 @@
 #!/bin/bash
 set -e  # Exit on any error
 
+# Print environment for debugging
+echo "=== Environment Variables ==="
+printenv | sort
+echo "==========================="
+
 # Create necessary directories
 mkdir -p ~/.streamlit/
+mkdir -p dist
 
 # Create config.toml
 cat > ~/.streamlit/config.toml <<EOL
@@ -10,6 +16,7 @@ cat > ~/.streamlit/config.toml <<EOL
 headless = true
 port = 8501
 enableCORS = false
+enableXsrfProtection = false
 
 [browser]
 serverAddress = ""
@@ -24,9 +31,10 @@ font = "sans serif"
 EOL
 
 # Print current directory and files for debugging
-echo "Current directory: $(pwd)"
-echo "Files in current directory:"
+echo "=== Current Directory ==="
+pwd
 ls -la
+echo "========================"
 
 # Install Node.js and npm using nvm (Node Version Manager)
 export NVM_DIR="$HOME/.nvm"
@@ -36,8 +44,8 @@ if ! command -v nvm &> /dev/null; then
     echo "Installing nvm..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
     export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 fi
 
 # Install Node.js LTS
@@ -46,38 +54,38 @@ nvm install --lts
 nvm use --lts
 
 # Verify installations
+echo "=== Node.js Environment ==="
 echo "Node.js version: $(node -v)"
 echo "npm version: $(npm -v)"
+echo "=========================="
 
 # Install npm dependencies
 echo "Installing npm dependencies..."
 npm install
-
-# Create dist directory if it doesn't exist
-mkdir -p dist
-
-# Create necessary directories
-echo "Creating necessary directories..."
-mkdir -p dist
 
 # Build the React app
 echo "Building React app..."
 VITE_BASE_URL=/ npm run build
 
 # Verify build output
-echo "Build output in dist directory:"
+echo "=== Build Output ==="
 ls -la dist/
+echo "===================="
 
-# Make sure the dist directory has the correct permissions
+# Set proper permissions
+echo "Setting permissions..."
+chmod -R 755 .
 chmod -R 755 dist/
 
-# Install Python package in development mode
-echo "Installing Python package..."
-pip install -e .
-
-# Install production dependencies
-echo "Installing production dependencies..."
+# Install Python dependencies
+echo "Installing Python dependencies..."
+pip install --upgrade pip
 pip install -r requirements.txt
+
+# Print final directory structure
+echo "=== Final Directory Structure ==="
+find . -maxdepth 3 -type d | sort
+echo "================================"
 
 echo "Setup completed successfully!"
 echo "Current directory structure:"
