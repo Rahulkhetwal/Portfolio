@@ -122,7 +122,7 @@ const Hero = () => {
                 <div className="relative w-64 h-64 md:w-72 md:h-72 rounded-3xl overflow-hidden border-2 border-white/10 bg-gradient-to-br from-gray-800 to-gray-900 shadow-2xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/20 mix-blend-overlay"></div>
                   <img
-                    src="https://github.com/Rahulkhetwal.png"
+                    src="profile.jpeg"
                     alt="Rahul Khetwal"
                     className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                     style={{
