@@ -74,8 +74,12 @@ cp serve.py dist/
 # Make serve.py executable
 chmod +x dist/serve.py
 
-# Install Python dependencies
-echo "Installing Python dependencies..."
+# Install Python package in development mode
+echo "Installing Python package..."
+pip install -e .
+
+# Install production dependencies
+echo "Installing production dependencies..."
 pip install -r requirements.txt
 
 echo "Setup completed successfully!"

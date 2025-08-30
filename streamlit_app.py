@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from pathlib import Path
 import subprocess
+import sys
 
 # Set page config
 st.set_page_config(
@@ -29,6 +30,21 @@ hide_streamlit_style = """
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+def find_serve_script():
+    """Find the serve.py script in common locations."""
+    possible_paths = [
+        os.path.join(os.getcwd(), 'serve.py'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'serve.py'),
+        os.path.join(os.getcwd(), 'dist', 'serve.py'),
+        '/mount/src/portfolio/serve.py',
+        '/mount/src/portfolio/dist/serve.py',
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
 
 def build_react_app():
     """Build the React app if not already built"""
