@@ -37,12 +37,20 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        
         # Cache static assets for 1 hour in production
-        if os.getenv('ENVIRONMENT') == 'production':
+        if os.getenv('ENVIRONMENT') == 'production' or os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
             if self.path.endswith(('.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.gif')):
                 self.send_header('Cache-Control', 'public, max-age=3600')
         super().end_headers()
+        
+    def do_OPTIONS(self):
+        # Handle preflight requests
+        self.send_response(200, "ok")
+        self.end_headers()
     
     def guess_type(self, path):
         # Override MIME type detection
@@ -153,6 +161,9 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
+    # Check if we're on Streamlit Cloud
+    is_streamlit_cloud = os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true'
+    
     # Display a loading message
     with st.spinner('Loading portfolio...'):
         # Build React app if needed
@@ -160,26 +171,68 @@ def main():
             st.error("Failed to build the application. Please check the logs.")
             return
 
-        # Start the server in a separate thread
-        server_thread = threading.Thread(target=start_server, daemon=True)
-        server_thread.start()
-        
-        # Give the server a moment to start
-        time.sleep(2)
-
-        # Get the correct URL for the iframe
-        if os.environ.get('STREAMLIT_SERVER_RUNNING_ON_CLOUD', 'false').lower() == 'true':
-            # On Streamlit Cloud, we need to use a different URL
-            iframe_url = f"https://{os.environ['STREAMLIT_SERVER_BASE_URL']}/"
+        if is_streamlit_cloud:
+            # On Streamlit Cloud, serve the index.html directly
+            try:
+                # Read the index.html file
+                with open(os.path.join(DIST_DIR, 'index.html'), 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                
+                # Replace all asset paths to be relative
+                base_url = f"https://{os.environ['STREAMLIT_SERVER_BASE_URL']}"
+                html_content = html_content.replace('href="/', f'href="{base_url}/')
+                html_content = html_content.replace('src="/', f'src="{base_url}/')
+                
+                # Force HTTPS for all external resources
+                html_content = html_content.replace('http://', 'https://')
+                
+                # Add base URL for relative paths
+                html_content = html_content.replace(
+                    '<head>', 
+                    f'<head><base href="{base_url}/" />'
+                )
+                
+                # Inject a script to handle any dynamic asset loading
+                html_content = html_content.replace(
+                    '</body>',
+                    '''<script>
+                    // Fix for any dynamically loaded assets
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Force HTTPS for any dynamically created elements
+                        const observer = new MutationObserver(function(mutations) {
+                            document.querySelectorAll('img, script, link[rel="stylesheet"]').forEach(el => {
+                                if (el.src && el.src.startsWith('http://')) {
+                                    el.src = el.src.replace('http://', 'https://');
+                                }
+                                if (el.href && el.href.startsWith('http://')) {
+                                    el.href = el.href.replace('http://', 'https://');
+                                }
+                            });
+                        });
+                        observer.observe(document.documentElement, {
+                            childList: true,
+                            subtree: true
+                        });
+                    });
+                    </script></body>'''
+                )
+                
+                st.components.v1.html(html_content, height=1000, scrolling=True)
+                
+            except Exception as e:
+                st.error(f"Failed to load portfolio: {str(e)}")
+                st.error(f"Current working directory: {os.getcwd()}")
+                st.error(f"Files in dist: {os.listdir(DIST_DIR) if os.path.exists(DIST_DIR) else 'dist directory not found'}")
         else:
-            iframe_url = f"http://{HOST}:{PORT}/"
-
-        # Embed the React app in an iframe
-        st.components.v1.iframe(
-            iframe_url,
-            height=1000,
-            scrolling=True
-        )
+            # Local development: Use the HTTP server
+            server_thread = threading.Thread(target=start_server, daemon=True)
+            server_thread.start()
+            time.sleep(2)  # Give the server a moment to start
+            st.components.v1.iframe(
+                f"http://{HOST}:{PORT}/",
+                height=1000,
+                scrolling=True
+            )
 
 if __name__ == "__main__":
     main()
