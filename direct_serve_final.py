@@ -72,31 +72,37 @@ def main():
             # Get the app URL without the protocol
             base_path = f"https://{base_url}"
             
-            # Update asset paths
-            content = content.replace('href="/', f'href="{base_path}/')
-            content = content.replace('src="/', f'src="{base_path}/')
+            # Update asset paths to use relative paths
+            content = content.replace('href="/assets/', 'href="./assets/')
+            content = content.replace('src="/assets/', 'src="./assets/')
             
-            # Add base URL
+            # Add base URL with proper path
             content = content.replace(
-                '<head>', 
-                f'<head><base href="{base_path}/" />'
+                '<head>',
+                f'<head><base href="./" />'
             )
         
         # Force HTTPS for all resources
         content = content.replace('http://', 'https://')
         
-        # Add CSP meta tag
+        # Add CSP meta tag with more permissive settings for development
         csp_meta = '''
         <meta http-equiv="Content-Security-Policy" 
-            content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';
-            img-src 'self' https: data:;
+            content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:;
             script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
             style-src 'self' 'unsafe-inline' https:;
-            font-src 'self' https: data:;
+            img-src 'self' data: https:;
+            font-src 'self' data: https:;
             connect-src 'self' https: wss:;
-            frame-ancestors 'self' https://*.streamlit.app;">
+            frame-src 'self' https:;
+            object-src 'none';
+            base-uri 'self';
+            form-action 'self';
+            frame-ancestors 'self' https://*.streamlit.app;
+            upgrade-insecure-requests;">
         '''
-        content = content.replace('<head>', f'<head>{csp_meta}')
+        # Insert CSP meta tag after the opening head tag
+        content = content.replace('<head>', '<head>' + csp_meta)
         
         # Display the content
         st.components.v1.html(
